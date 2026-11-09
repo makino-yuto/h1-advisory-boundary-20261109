@@ -21,3 +21,20 @@ jobs:
           count=$(jq 'if type == "array" then length else -1 end' response.json)
           private_seen=$(jq 'if type == "array" then any(.[]; .id == 6289057038) else false end' response.json)
           printf 'status=%s count=%s private_seen=%s\n' "$status" "$count" "$private_seen"
+      - name: Query GraphQL relation with the same repository token
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          payload=$(jq -nc --arg q 'query { repository(owner:"makino-yuto",name:"h1-advisory-boundary-20261109") { issue(number:1) { title relatesTo(first:10) { nodes { id title } } } } }' '{query:$q}')
+          status=$(curl --silent --show-error --output response.json --write-out '%{http_code}' \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'Content-Type: application/json' \
+            --header 'X-GitHub-Api-Version: 2026-03-10' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --data "$payload" \
+            'https://api.github.com/graphql')
+          public_issue_seen=$(jq '.data.repository.issue.title == "H1 owned HTML artifact isolation test 2026-11-10"' response.json)
+          related_count=$(jq 'if .data.repository.issue.relatesTo.nodes then (.data.repository.issue.relatesTo.nodes | length) else -1 end' response.json)
+          error_count=$(jq 'if .errors then (.errors | length) else 0 end' response.json)
+          printf 'graphql_status=%s public_issue_seen=%s related_count=%s error_count=%s\n' "$status" "$public_issue_seen" "$related_count" "$error_count"
