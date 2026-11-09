@@ -46,7 +46,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          payload=$(jq -nc --arg q 'query { search(query:"owned private issue artifact boundary is:issue", type:ISSUE_HYBRID, first:10) { issueCount issueSearchType lexicalFallbackReason nodes { ... on Issue { databaseId } } } }' '{query:$q}')
+          payload=$(jq -nc --arg q 'query { search(query:"repo:makino-yuto/h1-creation-boundary-20261109-seed owned private issue artifact boundary is:issue", type:ISSUE_HYBRID, first:5) { issueCount issueSearchType lexicalFallbackReason nodes { ... on Issue { databaseId } } } }' '{query:$q}')
           status=$(curl --silent --show-error --output response.json --write-out '%{http_code}' \
             --header 'Accept: application/vnd.github+json' \
             --header 'Content-Type: application/json' \
@@ -54,6 +54,10 @@ jobs:
             --header "Authorization: Bearer ${GH_TOKEN}" \
             --data "$payload" \
             'https://api.github.com/graphql')
+          if ! jq -e . response.json >/dev/null 2>&1; then
+            printf 'graphql_status=%s response_is_json=false\n' "$status"
+            exit 0
+          fi
           used=$(jq -r '.data.search.issueSearchType // "none"' response.json)
           private_seen=$(jq 'any(.data.search.nodes[]?; .databaseId == 6289057038)' response.json)
           errors=$(jq '(.errors // []) | length' response.json)
