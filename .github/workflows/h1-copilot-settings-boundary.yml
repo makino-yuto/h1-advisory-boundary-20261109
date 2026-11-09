@@ -1,0 +1,28 @@
+name: H1 synthetic Copilot settings permission check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check repository-scoped token against settings
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/makino-yuto/h1-advisory-boundary-20261109"
+          common=(-H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2026-03-10" -H "Authorization: Bearer ${GH_TOKEN}")
+          meta=$(curl -sS --max-time 15 "${common[@]}" -o meta.json -w '%{http_code}' "${api}")
+          echo "own_public_repo_http=${meta}"
+          read_code=$(curl -sS --max-time 15 "${common[@]}" -o read.json -w '%{http_code}' "${api}/copilot/code-review/settings")
+          echo "copilot_settings_read_http=${read_code}"
+          if [ "$read_code" != 200 ]; then jq -r '.message // "no-message"' read.json; fi
+          write_code=$(curl -sS --max-time 15 "${common[@]}" -X PATCH -H "Content-Type: application/json" --data '{"mcp_enabled":false}' -o write.json -w '%{http_code}' "${api}/copilot/code-review/settings")
+          echo "copilot_settings_patch_http=${write_code}"
+          if [ "$write_code" != 200 ]; then jq -r '.message // "no-message"' write.json; fi
