@@ -26,3 +26,11 @@ jobs:
           write_code=$(curl -sS --max-time 15 "${common[@]}" -X PATCH -H "Content-Type: application/json" --data '{"mcp_enabled":false}' -o write.json -w '%{http_code}' "${api}/copilot/code-review/settings")
           echo "copilot_settings_patch_http=${write_code}"
           if [ "$write_code" != 200 ]; then jq -r '.message // "no-message"' write.json; fi
+          gql_read='{"query":"query { repository(owner:\"makino-yuto\",name:\"h1-advisory-boundary-20261109\") { nameWithOwner repositoryCopilotCodeReviewSettings { mcpEnabled } } }"}'
+          gql_read_code=$(curl -sS --max-time 15 "${common[@]}" -H "Content-Type: application/json" --data "$gql_read" -o gql-read.json -w '%{http_code}' 'https://api.github.com/graphql')
+          echo "graphql_settings_read_http=${gql_read_code}"
+          jq -c '{repository: .data.repository.nameWithOwner, setting: .data.repository.repositoryCopilotCodeReviewSettings, errors: [.errors[]? | {type,message}]}' gql-read.json
+          gql_write='{"query":"mutation { updateRepositoryCopilotCodeReviewSettings(input:{repositoryId:\"R_kgDOVoOzAA\",mcpEnabled:false}) { settings { mcpEnabled } } }"}'
+          gql_write_code=$(curl -sS --max-time 15 "${common[@]}" -H "Content-Type: application/json" --data "$gql_write" -o gql-write.json -w '%{http_code}' 'https://api.github.com/graphql')
+          echo "graphql_settings_mutation_http=${gql_write_code}"
+          jq -c '{setting: .data.updateRepositoryCopilotCodeReviewSettings.settings, errors: [.errors[]? | {type,message}]}' gql-write.json
