@@ -1,0 +1,43 @@
+name: H1 private issue search read boundary
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: read
+jobs:
+  issue_search_read:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify public Issue is readable
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          status=$(curl --silent --show-error --output response.json --write-out '%{http_code}' \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2026-03-10' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            'https://api.github.com/repos/makino-yuto/h1-advisory-boundary-20261109/issues/1')
+          public_seen=$(jq '.id == 6289187453' response.json)
+          printf 'public_status=%s public_seen=%s\n' "$status" "$public_seen"
+      - name: Compare semantic and hybrid Issue search
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for mode in semantic hybrid; do
+            status=$(curl --silent --show-error --get --output response.json --write-out '%{http_code}' \
+              --header 'Accept: application/vnd.github+json' \
+              --header 'X-GitHub-Api-Version: 2026-03-10' \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --data-urlencode 'q=owned private issue artifact boundary is:issue' \
+              --data-urlencode "search_type=${mode}" \
+              'https://api.github.com/search/issues')
+            used=$(jq -r '.search_type // "none"' response.json)
+            count=$(jq '.total_count // -1' response.json)
+            public_seen=$(jq 'any(.items[]?; .id == 6289187453)' response.json)
+            private_seen=$(jq 'any(.items[]?; .id == 6289057038)' response.json)
+            fallback=$(jq -c '.lexical_fallback_reason // null' response.json)
+            printf 'mode=%s status=%s used=%s count=%s public_seen=%s private_seen=%s fallback=%s\n' \
+              "$mode" "$status" "$used" "$count" "$public_seen" "$private_seen" "$fallback"
+          done
