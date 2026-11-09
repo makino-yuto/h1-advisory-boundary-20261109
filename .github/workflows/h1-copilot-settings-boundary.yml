@@ -20,6 +20,11 @@ jobs:
           common=(-H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2026-03-10" -H "Authorization: Bearer ${GH_TOKEN}")
           meta=$(curl -sS --max-time 15 "${common[@]}" -o meta.json -w '%{http_code}' "${api}")
           echo "own_public_repo_http=${meta}"
+          if [[ "${GH_TOKEN}" == ghs_* && ${#GH_TOKEN} -gt 100 ]]; then echo 'token_format_class=long_ghs'; else echo 'token_format_class=other'; fi
+          private_url='https://api.github.com/repos/makino-yuto/h1-creation-boundary-20261109-seed/contents/README.md'
+          private_code=$(curl -sS --max-time 15 "${common[@]}" -o private-read.json -w '%{http_code}' "${private_url}")
+          echo "other_private_repo_read_http=${private_code}"
+          if [ "$private_code" = 200 ]; then jq -c '{name,path,type,size}' private-read.json; else jq -r '.message // "no-message"' private-read.json; fi
           read_code=$(curl -sS --max-time 15 "${common[@]}" -o read.json -w '%{http_code}' "${api}/copilot/code-review/settings")
           echo "copilot_settings_read_http=${read_code}"
           if [ "$read_code" != 200 ]; then jq -r '.message // "no-message"' read.json; fi
