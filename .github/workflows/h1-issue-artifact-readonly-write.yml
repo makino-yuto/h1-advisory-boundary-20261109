@@ -1,0 +1,20 @@
+name: H1 owned Issue artifact read-only write boundary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Attempt one exact artifact rename with read-only token
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          H1_PROBE_MODE: read_only_write
+        run: python3 .github/scripts/h1_issue_artifact_scope_probe.py

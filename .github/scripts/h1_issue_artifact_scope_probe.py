@@ -77,8 +77,12 @@ def main() -> None:
         print(f"other_private_artifact_get_http={target_status}")
         print(f"other_private_marker_present={TARGET_READ_MARKER in target_body}")
         return
+    if mode == "read_only_write":
+        status = patch_name(SOURCE_PATH, "H1 read only artifact boundary test 20261110", token)
+        print(f"read_only_token_own_artifact_patch_http={status}")
+        return
     if mode != "write":
-        raise ValueError("H1_PROBE_MODE must be read or write")
+        raise ValueError("H1_PROBE_MODE must be read, write, or read_only_write")
     own_status = patch_name(SOURCE_PATH, "H1 own artifact scope positive 20261110", token)
     print(f"own_artifact_patch_http={own_status}")
     if own_status != 200:
