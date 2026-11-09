@@ -1,0 +1,33 @@
+name: H1 synthetic advisory comment boundary
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check draft advisory and comment access
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          base='https://api.github.com/repos/makino-yuto/h1-advisory-boundary-20261109/security-advisories/GHSA-cfrw-f3rx-gf7r'
+          for route in advisory comments exact-comment; do
+            case "$route" in
+              advisory) url="$base" ;;
+              comments) url="$base/comments" ;;
+              exact-comment) url="$base/comments/364847" ;;
+            esac
+            status=$(curl --silent --show-error --max-time 20 \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              --header 'X-GitHub-Api-Version: 2026-03-10' \
+              --output response.json --write-out '%{http_code}' "$url")
+            if jq -e '.. | strings | select(contains("H1_SYNTHETIC_DRAFT_COMMENT_20261110_A7Q2"))' response.json >/dev/null; then
+              marker=true
+            else
+              marker=false
+            fi
+            echo "$route status=$status marker=$marker"
+          done
