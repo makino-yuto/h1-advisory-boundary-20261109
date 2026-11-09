@@ -1,0 +1,42 @@
+name: H1 owned async merge read-only boundary
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Owned synthetic pull request number
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test read-only token against async merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          set -euo pipefail
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
+          url="https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/merge-async"
+          status=$(curl --silent --show-error --output response.json --write-out '%{http_code}' \
+            --request PUT \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2026-03-10' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --data '{"merge_method":"squash","merge_action":"direct_merge"}' \
+            "$url")
+          printf 'merge_async_http=%s\n' "$status"
+          jq -c '{status, message, documentation_url, errors}' response.json
+          pr_status=$(curl --silent --show-error --output pr.json --write-out '%{http_code}' \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2026-03-10' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER")
+          printf 'pr_read_http=%s\n' "$pr_status"
+          jq -c '{state, merged, mergeable, number}' pr.json
