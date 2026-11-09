@@ -1,0 +1,2 @@
+H1 owned synthetic async merge permission check 2026-11-10.
+No secrets, customer data, or production code.
