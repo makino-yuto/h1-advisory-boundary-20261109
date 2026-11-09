@@ -1,0 +1,19 @@
+name: H1 owned Issue artifact token boundary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check exact owned artifacts with repository-scoped token
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/h1_issue_artifact_scope_probe.py
