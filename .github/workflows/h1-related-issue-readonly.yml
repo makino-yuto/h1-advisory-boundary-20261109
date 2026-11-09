@@ -1,0 +1,23 @@
+name: H1 related issue read boundary
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: read
+jobs:
+  related_issue_read:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query only the owned public issue relation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          status=$(curl --silent --show-error --output response.json --write-out '%{http_code}' \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2026-03-10' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            'https://api.github.com/repos/makino-yuto/h1-advisory-boundary-20261109/issues/1/relates_to')
+          count=$(jq 'if type == "array" then length else -1 end' response.json)
+          private_seen=$(jq 'if type == "array" then any(.[]; .id == 6289057038) else false end' response.json)
+          printf 'status=%s count=%s private_seen=%s\n' "$status" "$count" "$private_seen"
