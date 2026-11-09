@@ -41,3 +41,22 @@ jobs:
             printf 'mode=%s status=%s used=%s count=%s public_seen=%s private_seen=%s fallback=%s\n' \
               "$mode" "$status" "$used" "$count" "$public_seen" "$private_seen" "$fallback"
           done
+      - name: Compare GraphQL hybrid Issue search
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          payload=$(jq -nc --arg q 'query { search(query:"owned private issue artifact boundary is:issue", type:ISSUE_HYBRID, first:10) { issueCount issueSearchType lexicalFallbackReason nodes { ... on Issue { databaseId } } } }' '{query:$q}')
+          status=$(curl --silent --show-error --output response.json --write-out '%{http_code}' \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'Content-Type: application/json' \
+            --header 'X-GitHub-Api-Version: 2026-03-10' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --data "$payload" \
+            'https://api.github.com/graphql')
+          used=$(jq -r '.data.search.issueSearchType // "none"' response.json)
+          private_seen=$(jq 'any(.data.search.nodes[]?; .databaseId == 6289057038)' response.json)
+          errors=$(jq '(.errors // []) | length' response.json)
+          fallback=$(jq -c '.data.search.lexicalFallbackReason // null' response.json)
+          printf 'graphql_status=%s used=%s private_seen=%s errors=%s fallback=%s\n' \
+            "$status" "$used" "$private_seen" "$errors" "$fallback"
