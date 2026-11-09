@@ -13,8 +13,9 @@ jobs:
         run: |
           set -eu
           base='https://api.github.com/repos/makino-yuto/h1-advisory-boundary-20261109/security-advisories/GHSA-cfrw-f3rx-gf7r'
-          for route in advisory comments exact-comment; do
+          for route in repo-metadata advisory comments exact-comment; do
             case "$route" in
+              repo-metadata) url='https://api.github.com/repos/makino-yuto/h1-advisory-boundary-20261109' ;;
               advisory) url="$base" ;;
               comments) url="$base/comments" ;;
               exact-comment) url="$base/comments/364847" ;;
