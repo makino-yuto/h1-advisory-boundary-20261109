@@ -2,6 +2,15 @@ name: H1 owned Issue artifact token boundary
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Read or write boundary
+        required: true
+        default: read
+        type: choice
+        options:
+          - read
+          - write
 
 permissions:
   contents: read
@@ -16,4 +25,5 @@ jobs:
       - name: Check exact owned artifacts with repository-scoped token
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          H1_PROBE_MODE: ${{ inputs.mode }}
         run: python3 .github/scripts/h1_issue_artifact_scope_probe.py
